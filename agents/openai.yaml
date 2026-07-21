@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brain × Pi 协作闭环"
+  short_description: "Plan with a brain agent and execute safely through Pi"
+  default_prompt: "Use $brain-pi-loop to let Pi execute this task while you plan, independently review, and deliver."
