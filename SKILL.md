@@ -34,7 +34,7 @@ HANDOFF: changed paths, commands/results, risks, and remaining gaps
 4. Start one named Pi session per task. Allow only required tools. Example:
 
 ```sh
-pi-compact --session-id task-slug --tools read,grep,find,ls,bash,edit,write "<contract>"
+pi-compact --session /absolute/path/task.jsonl --tools read,grep,find,ls,bash,edit,write "<contract>"
 ```
 
 5. Read only the compact result. Never ingest raw Pi JSONL, thinking deltas, signatures, or full tool output into the brain context.
@@ -61,3 +61,24 @@ pi-compact --session-id task-slug --tools read,grep,find,ls,bash,edit,write "<co
 - Starting a fresh Pi session for review corrections and losing execution context.
 
 For configuration schema, OS-specific setup, migration paths, and compact output fields, read [references/setup.md](references/setup.md).
+
+## Request reliability and recovery
+
+Use the shared installed `pi` / `pi-compact` entrypoint and `pi-compact doctor`
+to verify the effective executable. A version number alone does not prove that
+the launched module graph contains the managed transport and retry policy.
+Do not cache a host application's bundled executable in one-off runner scripts.
+
+Request cancellation, response-header deadlines and stream-idle deadlines
+belong to the model transport. Agent silence is not proof of a dead request:
+the model may be reasoning or a tool may still be running. A process watchdog
+is only a final safety net and must not be the normal recovery mechanism.
+Keep one bounded retry owner; do not nest an unlimited launcher restart loop
+around the provider's own retries. Do not retry an expired credential as a
+network error or replay completed external actions after an ambiguous failure.
+
+The compact handoff preserves at most five sanitized failure records and a
+retry count, including when a later retry succeeds. Use `code`, `phase`,
+`retryable` and `requestId` to select recovery; unknown transport evidence stays
+unknown. Resume the existing session only after inspecting completed tool
+results and current workspace state. Preserve the same authority and tool scope.

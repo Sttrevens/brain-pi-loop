@@ -129,3 +129,9 @@ Run the installer from Python; it creates user-local `.cmd` launchers. Add that 
 ```
 
 Thinking, signatures, tool arguments, and tool results are intentionally discarded. Independently inspect the workspace for review evidence.
+
+Failure metadata is bounded and contains no raw provider prose. Optional
+`failures` (the last five safe code/phase/retryability/request-ID records) and
+`retryCount` explain recovery even if the final `status` is `ok`. A generic
+`provider_request_failed` means the provider supplied no usable structured
+metadata; it does not identify a failing network hop.

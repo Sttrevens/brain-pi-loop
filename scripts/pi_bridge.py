@@ -4,6 +4,7 @@
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -152,6 +153,39 @@ def build_compact_args(user_args, config):
     return prefix + args
 
 
+def _safe_failure(message):
+    """Keep actionable metadata, never provider prose, prompts or credentials."""
+    candidates = [item.get("details", {}) for item in (message.get("diagnostics") or [])
+                  if isinstance(item, dict) and item.get("type") == "team_gateway_failure"]
+    text = message.get("errorMessage", "")
+    if isinstance(text, str) and len(text) <= 16384 and "{" in text:
+        try:
+            parsed, _ = json.JSONDecoder().raw_decode(text[text.index("{"):])
+            if isinstance(parsed, dict):
+                candidates.append(parsed.get("error", parsed))
+        except ValueError:
+            pass
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        code = candidate.get("code")
+        if not isinstance(code, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_]{0,79}", code):
+            continue
+        result = {"code": code}
+        for key in ("source", "phase", "action"):
+            value = candidate.get(key)
+            if isinstance(value, str) and re.fullmatch(r"[a-z][a-z0-9_]{0,79}", value):
+                result[key] = value
+        if isinstance(candidate.get("retryable"), bool):
+            result["retryable"] = candidate["retryable"]
+        observed = candidate.get("observed", {})
+        request_id = candidate.get("request_id") or (observed.get("requestId") if isinstance(observed, dict) else None)
+        if isinstance(request_id, str) and re.fullmatch(r"[A-Za-z0-9._-]{4,128}", request_id):
+            result["requestId"] = request_id
+        return result
+    return {"code": "provider_request_failed"}
+
+
 class _Compactor:
     def __init__(self):
         self.session_id = None
@@ -165,9 +199,14 @@ class _Compactor:
         self.pending_tools = {}
         self.parse_errors = 0
         self.saw_turn_end = False
+        self.failures = deque(maxlen=5)
+        self.retry_count = 0
 
     def accept(self, event):
         event_type = event.get("type")
+        if event_type == "auto_retry_start":
+            self.retry_count += 1
+            return
         if event_type == "session":
             self.session_id = event.get("id")
             self.cwd = event.get("cwd")
@@ -197,6 +236,8 @@ class _Compactor:
         self.model = message.get("model")
         self.usage = message.get("usage")
         self.stop_reason = message.get("stopReason")
+        if self.stop_reason == "error":
+            self.failures.append(_safe_failure(message))
         content = message.get("content") or []
         self.final = "\n".join(
             part.get("text", "")
@@ -226,6 +267,10 @@ class _Compactor:
         }
         if self.parse_errors:
             result["parseErrors"] = self.parse_errors
+        if self.failures:
+            result["failures"] = list(self.failures)
+        if self.retry_count:
+            result["retryCount"] = self.retry_count
         return result
 
 
