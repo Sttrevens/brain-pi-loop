@@ -15,6 +15,33 @@ SPEC.loader.exec_module(pi_bridge)
 
 
 class CompactJsonlTests(unittest.TestCase):
+    def test_retry_handoff_keeps_safe_failure_evidence_without_raw_provider_text(self):
+        events = [{"type": "session", "id": "same-session"}]
+        for _ in range(7):
+            events.extend([
+                {"type": "turn_end", "message": {"stopReason": "error", "content": [],
+                    "errorMessage": "private provider prose sk-secret", "diagnostics": [{
+                        "type": "team_gateway_failure", "details": {"code": "4d_stream_idle_timeout",
+                        "phase": "stream", "retryable": True, "message": "private text",
+                        "observed": {"requestId": "safe-request-123", "token": "private-token"}}}]}},
+                {"type": "auto_retry_start", "attempt": 1},
+            ])
+        events.append({"type": "turn_end", "message": {"stopReason": "stop", "content": [{"type": "text", "text": "done"}]}})
+        result = pi_bridge.compact_jsonl(io.StringIO("\n".join(map(json.dumps, events))))
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["sessionId"], "same-session")
+        self.assertEqual(result["retryCount"], 7)
+        self.assertEqual(len(result["failures"]), 5)
+        self.assertEqual(result["failures"][-1]["requestId"], "safe-request-123")
+        self.assertNotIn("private", json.dumps(result))
+        self.assertNotIn("sk-secret", json.dumps(result))
+
+    def test_gateway_envelope_is_preserved_but_unstructured_failure_is_not_guessed(self):
+        message = {"errorMessage": '524 {"error":{"code":"upstream_error","source":"qwen","phase":"request","retryable":true,"request_id":"safe-123","message":"private"}}'}
+        self.assertEqual(pi_bridge._safe_failure(message), {"code": "upstream_error", "source": "qwen",
+            "phase": "request", "retryable": True, "requestId": "safe-123"})
+        self.assertEqual(pi_bridge._safe_failure({"errorMessage": "Connection error."}), {"code": "provider_request_failed"})
+
     def test_keeps_handoff_metadata_and_drops_thinking_payloads(self):
         events = [
             {"type": "session", "id": "session-123", "cwd": "/repo"},
