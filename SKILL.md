@@ -9,6 +9,8 @@ description: Provides a provider-neutral Brain-to-Pi execution and independent-r
 
 Keep judgment and execution separate. The brain agent owns objectives, falsifiers, permissions, independent verification, and delivery. Pi owns bounded execution. Treat Pi's report as evidence, never as the acceptance verdict.
 
+The brain's context is the scarce resource: every brain turn carries it again. Spend it on objectives, decisions and findings, and push reading, running and first-pass review to the executor. Count the brain's turns and reads, not the executor's tokens.
+
 ## First use
 
 Run `pi-compact doctor` if installed. Otherwise read [references/setup.md](references/setup.md), run `scripts/install.py`, then verify `pi --version` and `pi-compact doctor`.
@@ -54,17 +56,20 @@ VERIFY: exact tests, runtime checks, and evidence
 HANDOFF: changed paths, commands/results, risks, and remaining gaps
 ```
 
-3. Isolate execution in a worktree or bounded directory when practical. Preserve unrelated user changes.
-4. Start one named Pi session per task. Allow only required tools. Example:
+   Keep stable project rules and history in a repository file the executor reads (a state or handoff doc). The contract then carries only the task delta and path references. Ask for a HANDOFF that maps each falsifier to its evidence: a test name or `file:line`, and each command with its one-line result.
+3. For architectural or ambiguous work, make phase 1 a design checkpoint: the executor writes a bounded plan file and ends its turn. Review that file, then resume the same session to implement. A design error then costs one short review instead of a rewrite.
+4. Use a worktree only when parallel writers or unrelated user changes require isolation; otherwise work in the checkout the user expects. Preserve unrelated user changes.
+5. Start one named Pi session per task with only the required tools, detached from the brain's shell, from a background shell:
 
 ```sh
-pi-compact --session /absolute/path/task.jsonl --tools read,grep,find,ls,bash,edit,write "<contract>"
+python3 scripts/pi_loop.py run --session <name> --contract <file> --out <result.json> -- --tools read,grep,find,ls,bash,edit,write
 ```
 
-5. Read only the compact result. Never ingest raw Pi JSONL, thinking deltas, signatures, or full tool output into the brain context.
-6. Independently inspect actual state: targeted diff/status, relevant contracts, tests, runtime, and authority boundaries. Do not limit review to Pi's diff summary.
-7. If findings remain, resume the returned session with `pi-compact --session <sessionId> "<findings>"`. Re-review after each correction.
-8. Deliver only when the falsifier is defeated and required verification is current. Report unverified gaps explicitly.
+   It runs `pi-compact` in its own session with stdin from the null device (Pi waits for EOF on a non-TTY stdin) and prints one compact handoff when the executor stops. Add `--resume` to continue a session and `--idle-timeout <s>` as a last-resort safety net. Wait for the completion notification instead of polling. If the waiter dies, the executor keeps running; `pi_loop.py result <result.json>` prints the handoff later.
+6. Read only the compact result. Never ingest raw Pi JSONL, thinking deltas, signatures, or full tool output into the brain context. To relay an earlier session, run `pi_loop.py digest <session>`: it prints the prompts and the final reply, truncated.
+7. Review by evidence. Run the verification gates yourself and read their one-line results. Read the ranges the handoff anchors, plus the invariants with the highest risk, not the whole diff. When the diff is too large to read cheaply, start a fresh read-only Pi reviewer session with the contract and the diff range. Ask for severity-ranked findings with anchors, and confirm each finding at its anchor before you act on it. The reviewer's report is evidence too.
+8. If findings remain, resume the executor's session with them (`--resume`). Re-review after each correction.
+9. Deliver only when the falsifier is defeated and required verification is current. Report unverified gaps explicitly.
 
 ## Native harness first
 
@@ -100,6 +105,9 @@ codex exec --skip-git-repo-check --json -o <final.json> resume <thread_id> "<fin
 - Passing raw streaming JSON into the brain context.
 - Putting API keys in prompts, task files, config JSON, logs, or shell history.
 - Starting a fresh Pi session for review corrections and losing execution context.
+- Polling a running executor or reading its session file instead of waiting for the notification.
+- Restating repository rules and history in every contract instead of pointing to the file that holds them.
+- Reading a whole diff when anchored evidence and the gates decide the review.
 
 For configuration schema, OS-specific setup, migration paths, and compact output fields, read [references/setup.md](references/setup.md).
 

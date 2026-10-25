@@ -1,21 +1,86 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["status", "summary", "changed_paths", "checks", "risks", "gaps"],
+  "required": [
+    "status",
+    "summary",
+    "changed_paths",
+    "checks",
+    "evidence",
+    "risks",
+    "gaps"
+  ],
   "properties": {
-    "status": { "type": "string", "enum": ["done", "incomplete"] },
-    "summary": { "type": "string" },
-    "changed_paths": { "type": "array", "items": { "type": "string" } },
+    "status": {
+      "type": "string",
+      "enum": [
+        "done",
+        "incomplete"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "changed_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "checks": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["command", "result"],
-        "properties": { "command": { "type": "string" }, "result": { "type": "string" } }
+        "required": [
+          "command",
+          "result"
+        ],
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          }
+        }
       }
     },
-    "risks": { "type": "array", "items": { "type": "string" } },
-    "gaps": { "type": "array", "items": { "type": "string" } }
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "falsifier",
+          "anchor",
+          "result"
+        ],
+        "properties": {
+          "falsifier": {
+            "type": "string"
+          },
+          "anchor": {
+            "type": "string",
+            "description": "test name or file:line"
+          },
+          "result": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }

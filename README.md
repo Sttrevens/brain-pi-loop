@@ -10,6 +10,7 @@
 
 - `SKILL.md`：Brain 到 Pi 的任务合同、权限边界、返工和验收协议。
 - `scripts/pi_bridge.py`：在本地消费 Pi JSONL，丢弃 thinking、signature 和完整工具结果，只返回紧凑交接信息。
+- `scripts/pi_loop.py`：Brain 侧的分离启动（stdin 置空、独立会话、结束时只打印紧凑交接）、交接回读和会话摘要，用于接力旧会话。
 - `scripts/install.py`：安装 `pi` / `pi-compact` 用户级命令，并生成不含密钥的配置。
 - `references/setup.md`：macOS、Linux 和 Windows 的安装与凭据管理说明。
 

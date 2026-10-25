@@ -128,7 +128,7 @@ Run the installer from Python; it creates user-local `.cmd` launchers. Add that 
 }
 ```
 
-Thinking, signatures, tool arguments, and tool results are intentionally discarded. Independently inspect the workspace for review evidence.
+Thinking, signatures, tool arguments, and tool results are intentionally discarded. `scripts/pi_loop.py run` prints the same object as one header line (status, session, model, stop reason, last-turn tokens, failures) followed by the `final` text. Independently inspect the workspace for review evidence.
 
 Failure metadata is bounded and contains no raw provider prose. Optional
 `failures` (the last five safe code/phase/retryability/request-ID records) and
