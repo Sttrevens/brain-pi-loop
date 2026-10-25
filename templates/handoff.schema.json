@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "summary", "changed_paths", "checks", "risks", "gaps"],
+  "properties": {
+    "status": { "type": "string", "enum": ["done", "incomplete"] },
+    "summary": { "type": "string" },
+    "changed_paths": { "type": "array", "items": { "type": "string" } },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "result"],
+        "properties": { "command": { "type": "string" }, "result": { "type": "string" } }
+      }
+    },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "gaps": { "type": "array", "items": { "type": "string" } }
+  }
+}
